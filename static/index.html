@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>XDOJ 自动刷题</title>
+<style>
+:root{
+  --bg:#f4f6fa; --panel:#ffffff; --panel2:#fafbfd; --line:#e3e8f0;
+  --text:#1a2233; --text2:#5c6b82; --text3:#8b98ab;
+  --accent:#2f6df6; --accent-soft:#e8efff;
+  --ok:#0f9d58; --ok-soft:#e6f6ee;
+  --bad:#e0403f; --bad-soft:#fdeceb;
+  --warn:#c47f17; --warn-soft:#fdf3e2;
+  --run:#2f6df6; --run-soft:#e8efff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Cascadia Mono",monospace;
+  --radius:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#10141c; --panel:#171c26; --panel2:#1c2230; --line:#2a3242;
+    --text:#e8edf5; --text2:#a4b0c4; --text3:#7286a0;
+    --accent:#5b8dff; --accent-soft:#1e2a45;
+    --ok:#38c47d; --ok-soft:#14301f;
+    --bad:#f0655f; --bad-soft:#34191a;
+    --warn:#e0a640; --warn-soft:#33260f;
+    --run:#5b8dff; --run-soft:#1e2a45;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#2f6df6,#7aa7ff);
+  display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px;letter-spacing:-.5px}
+h1{font-size:17px;margin:0;font-weight:650;letter-spacing:.2px}
+.sub{color:var(--text3);font-size:12.5px;margin-top:-2px}
+.spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+  font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--text2)}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--text3)}
+.pill.on{color:var(--run);border-color:transparent;background:var(--run-soft)}
+.pill.on .dot{background:var(--run);animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ---------- cards ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 18px;margin-bottom:14px}
+.card h2{font-size:13px;margin:0 0 14px;font-weight:650;color:var(--text2);
+  letter-spacing:.6px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.card h2 .bar{width:3px;height:13px;border-radius:2px;background:var(--accent)}
+
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media(max-width:820px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.grid{grid-template-columns:1fr}}
+
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font-size:12.5px;color:var(--text2);font-weight:550}
+.field .hint{font-size:11.5px;color:var(--text3)}
+input[type=text],input[type=password],input[type=number]{
+  width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--text);font-size:13.5px;font-family:inherit;
+  transition:border-color .15s,box-shadow .15s}
+input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
+button{font-family:inherit;font-size:13.5px;font-weight:600;padding:10px 20px;border-radius:9px;
+  border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer;
+  transition:transform .08s,filter .15s,background .15s}
+button:hover:not(:disabled){filter:brightness(.97)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--accent);border-color:transparent;color:#fff;
+  box-shadow:0 2px 10px rgba(47,109,246,.28)}
+button.danger{background:transparent;border-color:var(--bad);color:var(--bad)}
+button.ghost{background:transparent}
+
+.switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);
+  cursor:pointer;user-select:none;padding:7px 12px;border-radius:9px;border:1px solid var(--line);
+  background:var(--panel2)}
+.switch input{appearance:none;width:32px;height:18px;border-radius:999px;background:var(--line);
+  position:relative;cursor:pointer;transition:background .18s;margin:0;flex:none}
+.switch input::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;
+  border-radius:50%;background:#fff;transition:transform .18s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch input:checked{background:var(--accent)}
+.switch input:checked::after{transform:translateX(14px)}
+
+/* ---------- stats ---------- */
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{flex:1;min-width:110px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:10px;padding:11px 14px}
+.stat .n{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.stat .k{font-size:12px;color:var(--text3);margin-top:-2px}
+.stat.ok .n{color:var(--ok)} .stat.bad .n{color:var(--bad)} .stat.run .n{color:var(--run)}
+
+/* ---------- problem cards ---------- */
+.plist{display:flex;flex-direction:column;gap:10px}
+.pcard{border:1px solid var(--line);border-radius:10px;background:var(--panel2);overflow:hidden}
+.pcard .head{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:default}
+.pcard .pid{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text2);
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
+.pcard .title{font-weight:600;font-size:13.5px;flex:1;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.badge{font-size:12px;font-weight:650;padding:2px 9px;border-radius:999px;white-space:nowrap;
+  border:1px solid transparent}
+.b-ok{color:var(--ok);background:var(--ok-soft)}
+.b-bad{color:var(--bad);background:var(--bad-soft)}
+.b-warn{color:var(--warn);background:var(--warn-soft)}
+.b-run{color:var(--run);background:var(--run-soft)}
+.b-idle{color:var(--text3);background:var(--panel);border-color:var(--line)}
+.b-run .spin{display:inline-block;width:9px;height:9px;border:1.5px solid currentColor;
+  border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite;
+  margin-right:5px;vertical-align:-1px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pcard .body{padding:0 14px 12px;display:none}
+.pcard.open .body{display:block}
+.pcard .meta{display:flex;gap:14px;font-size:12px;color:var(--text3);margin-bottom:8px;flex-wrap:wrap}
+.pcard pre{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:11px 13px;overflow:auto;max-height:340px;font-family:var(--mono);font-size:12.5px;
+  line-height:1.55;color:var(--text)}
+.pcard .err{color:var(--bad);font-family:var(--mono);font-size:12px;white-space:pre-wrap;
+  background:var(--bad-soft);border-radius:8px;padding:9px 12px;margin-top:8px}
+.pcard .tog{font-size:12px;color:var(--accent);cursor:pointer;background:none;border:none;
+  padding:2px 0;font-weight:600}
+
+/* ---------- problem picker ---------- */
+.picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;
+  max-height:280px;overflow:auto;padding:2px}
+.chip{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px;
+  border:1px solid var(--line);background:var(--panel2);font-size:12.5px;cursor:pointer;
+  min-width:0;transition:border-color .13s,background .13s}
+.chip:hover{border-color:var(--accent)}
+.chip.sel{border-color:var(--accent);background:var(--accent-soft)}
+.chip .pid{font-family:var(--mono);color:var(--text2);flex:none}
+.chip .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .tick{color:var(--ok);font-size:11px;font-weight:700;flex:none}
+
+/* ---------- log ---------- */
+#log{font-family:var(--mono);font-size:12.5px;line-height:1.65;background:var(--panel2);
+  border:1px solid var(--line);border-radius:10px;padding:12px 14px;height:300px;
+  overflow:auto;white-space:pre-wrap;word-break:break-all}
+#log .l-info{color:var(--text2)}
+#log .l-ok{color:var(--ok)}
+#log .l-warn{color:var(--warn)}
+#log .l-err{color:var(--bad)}
+#log .l-head{color:var(--accent);font-weight:600}
+#log .t{color:var(--text3);margin-right:6px}
+#log .empty{color:var(--text3)}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+  background:var(--text);color:var(--bg);padding:9px 18px;border-radius:9px;font-size:13px;
+  font-weight:600;opacity:0;pointer-events:none;transition:.22s;z-index:99;max-width:80vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+details.adv summary{cursor:pointer;font-size:12.5px;color:var(--text2);font-weight:600;
+  padding:2px 0;list-style:none}
+details.adv summary::-webkit-details-marker{display:none}
+details.adv summary::before{content:"▸ ";color:var(--text3)}
+details.adv[open] summary::before{content:"▾ "}
+
+/* ---------- modal ---------- */
+.mask{position:fixed;inset:0;background:rgba(12,18,28,.42);backdrop-filter:blur(2px);
+  display:none;align-items:center;justify-content:center;z-index:60;padding:24px}
+.mask.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  width:min(560px,100%);max-height:88vh;overflow:auto;box-shadow:0 24px 60px rgba(10,20,40,.28)}
+.modal .mh{display:flex;align-items:center;gap:10px;padding:18px 22px 0}
+.modal .mh h3{font-size:15px;margin:0;font-weight:650;flex:1}
+.modal .mb{padding:16px 22px}
+.modal .mf{padding:0 22px 20px;display:flex;gap:10px;justify-content:flex-end}
+.x{border:none;background:none;color:var(--text3);font-size:20px;line-height:1;cursor:pointer;
+  padding:2px 6px;border-radius:6px}
+.x:hover{background:var(--panel2);color:var(--text)}
+.modal .grid{grid-template-columns:1fr 1fr;gap:14px}
+.modal .grid.one{grid-template-columns:1fr}
+.modal .note{font-size:12px;color:var(--text3);margin-top:14px;line-height:1.7;
+  background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 13px}
+.modal .note code{font-family:var(--mono);font-size:11.5px;color:var(--text2);word-break:break-all}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">OJ</div>
+    <div>
+      <h1>XDOJ 自动刷题控制台</h1>
+      <div class="sub">题面 PDF → 大模型出码 → 本地编译 → 样例自检 → 自动提交 → 轮询判定</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="pill" id="status"><span class="dot"></span><span id="statusText">空闲</span></div>
+    <button class="ghost" id="btnSetting" style="padding:6px 14px;font-size:12.5px">设置</button>
+  </header>
+
+  <!-- 参数 -->
+  <div class="card">
+    <h2><span class="bar"></span>执行参数</h2>
+    <div class="grid">
+      <div class="field">
+        <label>考试编号</label>
+        <input type="number" id="contest" value="310" placeholder="如 310" />
+        <span class="hint">竞赛 / 作业 ID</span>
+      </div>
+      <div class="field">
+        <label>题目编号</label>
+        <input type="text" id="pids" value="506,507,511" placeholder="506,507,511 或 506-510" />
+        <span class="hint">逗号分隔，支持区间</span>
+      </div>
+      <div class="field">
+        <label>单题最多重做</label>
+        <input type="number" id="retry" value="1" min="0" max="5" />
+        <span class="hint">失败后带错误重生成</span>
+      </div>
+      <div class="field">
+        <label>题间间隔（秒）</label>
+        <input type="number" id="delay" value="5" min="0" max="120" />
+        <span class="hint">避免提交过快被限流</span>
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="primary" id="btnRun">执行</button>
+      <button class="danger" id="btnStop" disabled>停止</button>
+      <button class="ghost" id="btnList">载入题目列表</button>
+      <label class="switch"><input type="checkbox" id="skipAc" checked>跳过已通过的题</label>
+      <label class="switch"><input type="checkbox" id="dry">只生成不提交</label>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <span class="hint" id="cfgHint" style="font-size:12.5px;color:var(--text3)">正在读取配置…</span>
+    </div>
+  </div>
+
+  <!-- 题目列表 -->
+  <div class="card" id="pickerCard" style="display:none">
+    <h2><span class="bar"></span>题目列表 <span id="pickerInfo" style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--text3)"></span></h2>
+    <div class="picker" id="picker"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="ghost" id="btnSelTodo">选中全部未通过</button>
+      <button class="ghost" id="btnSelNone">清空选择</button>
+    </div>
+  </div>
+
+  <!-- 进度 -->
+  <div class="card">
+    <h2><span class="bar"></span>运行进度</h2>
+    <div class="stats" style="margin-bottom:14px">
+      <div class="stat"><div class="n" id="sTotal">0</div><div class="k">总题数</div></div>
+      <div class="stat ok"><div class="n" id="sOk">0</div><div class="k">通过</div></div>
+      <div class="stat bad"><div class="n" id="sBad">0</div><div class="k">未通过</div></div>
+      <div class="stat run"><div class="n" id="sRun">0</div><div class="k">进行中</div></div>
+    </div>
+    <div class="plist" id="plist"></div>
+  </div>
+
+  <!-- 日志 -->
+  <div class="card">
+    <h2><span class="bar"></span>实时日志</h2>
+    <div id="log"><span class="empty">等待开始…</span></div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- 设置 / 首次配置向导 -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <div class="mh">
+      <h3 id="setTitle">设置</h3>
+      <button class="x" id="btnCloseSet">×</button>
+    </div>
+    <div class="mb">
+      <div class="note" id="setupTip" style="margin:0 0 16px;display:none">
+        <b>第一次使用需要先填自己的账号和 Key。</b><br>
+        本软件不会内置任何人的账号或密钥，以下信息只保存在你自己的电脑上。
+      </div>
+      <div class="grid">
+        <div class="field">
+          <label>学号 <span style="color:var(--bad)">*</span></label>
+          <input type="text" id="cfgUser" autocomplete="off" placeholder="登录 XDOJ 的账号" />
+        </div>
+        <div class="field">
+          <label>密码 <span style="color:var(--bad)">*</span></label>
+          <input type="password" id="cfgPwd" autocomplete="off" placeholder="留空表示不修改" />
+        </div>
+      </div>
+      <div class="grid one" style="margin-top:14px">
+        <div class="field">
+          <label>AI API Key <span style="color:var(--bad)">*</span></label>
+          <input type="password" id="cfgKey" autocomplete="off" placeholder="粘贴你自己的 Key" />
+          <span class="hint" id="keyHint"></span>
+        </div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field">
+          <label>模型</label>
+          <input type="text" id="cfgModel" placeholder="glm-4.5-flash" />
+          <span class="hint">到 open.bigmodel.cn 申请</span>
+        </div>
+        <div class="field">
+          <label>接口地址</label>
+          <input type="text" id="cfgBase" placeholder="https://open.bigmodel.cn/api/paas/v4" />
+          <span class="hint">OpenAI 兼容端点</span>
+        </div>
+      </div>
+      <div class="note">
+        配置保存在本机：<code id="dataDir"></code>
+        <div style="margin-top:8px">需要一个支持读文本的模型 Key，可在 open.bigmodel.cn 免费获取。</div>
+        <div style="margin-top:8px" id="cxxState"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="ghost" id="btnOpenDir">打开数据目录</button>
+      <button class="primary" id="btnSaveCfg">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const cards = new Map();      // pid -> status object
+let running = false;
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+
+/* ---------- 解析题号 ---------- */
+function parsePids(str){
+  const out = [];
+  String(str||"").split(/[,，\s;；]+/).filter(Boolean).forEach(tok=>{
+    const m = tok.match(/^(\d+)\s*[-~]\s*(\d+)$/);
+    if (m){
+      let a = +m[1], b = +m[2];
+      if (a > b) [a,b] = [b,a];
+      for (let i=a;i<=b;i++) out.push(i);
+    } else if (/^\d+$/.test(tok)) out.push(+tok);
+  });
+  return [...new Set(out)];
+}
+
+/* ---------- 状态渲染 ---------- */
+const RUN_WORDS = ["准备中","生成代码","编译中","提交中","判定中"];
+const OK_WORDS  = ["正确","已通过"];
+
+function clsOf(st){
+  if (OK_WORDS.includes(st)) return {b:"b-ok", run:false};
+  if (RUN_WORDS.includes(st)) return {b:"b-run", run:true};
+  if (!st || st === "跳过") return {b:"b-idle", run:false};
+  if (st === "样例不符" || st === "编译失败" || st === "提交被拒") return {b:"b-warn", run:false};
+  if (["结果错误","答案错误","编译错误","运行错误","格式错误","运行超时","无判定","模型失败","出错"].includes(st))
+    return {b:"b-bad", run:false};
+  return {b:"b-warn", run:false};
+}
+
+function card(pid){
+  let c = cards.get(pid);
+  if (!c){
+    const el = document.createElement("div");
+    el.className = "pcard";
+    el.innerHTML = `
+      <div class="head">
+        <span class="pid">${pid}</span>
+        <span class="title"></span>
+        <span class="badge b-idle">等待</span>
+        <button class="tog">代码</button>
+      </div>
+      <div class="body">
+        <div class="meta"></div>
+        <pre style="display:none"></pre>
+        <div class="err" style="display:none"></div>
+      </div>`;
+    el.querySelector(".tog").addEventListener("click", ()=> el.classList.toggle("open"));
+    $("#plist").appendChild(el);
+    c = {el, state:{}};
+    cards.set(pid, c);
+  }
+  return c;
+}
+
+function render(pid){
+  const c = cards.get(pid); if (!c) return;
+  const s = c.state, el = c.el;
+  el.querySelector(".title").textContent = s.title || `题目 ${pid}`;
+  const {b, run} = clsOf(s.status);
+  const badge = el.querySelector(".badge");
+  badge.className = "badge " + b;
+  badge.innerHTML = (run ? '<span class="spin"></span>' : "") + esc(s.status || "等待");
+
+  const meta = [];
+  if (s.attempt) meta.push(`第 ${s.attempt} 次尝试`);
+  if (s.verdict) meta.push(`判定：${esc(s.verdict)}`);
+  if (s.sub) meta.push(`提交号 ${esc(s.sub)}`);
+  if (s.verdict && s.status !== s.verdict) meta.push(`状态：${esc(s.status)}`);
+  el.querySelector(".meta").innerHTML = meta.join(" · ") || "—";
+
+  const pre = el.querySelector("pre");
+  if (s.code){ pre.style.display = ""; pre.textContent = s.code; }
+  else pre.style.display = "none";
+
+  const err = el.querySelector(".err");
+  if (s.detail){ err.style.display = ""; err.textContent = s.detail; }
+  else err.style.display = "none";
+}
+
+function stats(){
+  const list = [...cards.values()].map(c => c.state.status || "等待");
+  $("#sTotal").textContent = list.length;
+  $("#sOk").textContent = list.filter(s => OK_WORDS.includes(s)).length;
+  $("#sRun").textContent = list.filter(s => RUN_WORDS.includes(s)).length;
+  $("#sBad").textContent = list.filter(s => s !== "等待" && !OK_WORDS.includes(s) && !RUN_WORDS.includes(s)).length;
+}
+
+/* ---------- 日志 ---------- */
+function logLine(ev){
+  const box = $("#log");
+  if (box.querySelector(".empty")) box.innerHTML = "";
+  const d = document.createElement("div");
+  d.className = "l-" + (ev.level || "info");
+  d.innerHTML = `<span class="t">${new Date().toLocaleTimeString("zh-CN",{hour12:false})}</span>${esc(ev.msg)}`;
+  box.appendChild(d);
+  while (box.children.length > 400) box.removeChild(box.firstChild);
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ---------- 运行状态 ---------- */
+function setRunning(on){
+  running = on;
+  const p = $("#status");
+  p.classList.toggle("on", on);
+  $("#statusText").textContent = on ? "运行中" : "空闲";
+  $("#btnRun").disabled = on;
+  $("#btnStop").disabled = !on;
+}
+
+/* ---------- SSE ---------- */
+function connect(){
+  const es = new EventSource("/api/events");
+  es.onmessage = e => {
+    const ev = JSON.parse(e.data);
+    if (ev.type === "hello"){
+      if (ev.problems && ev.problems.length){
+        ev.problems.forEach(p => { const c = card(p.pid); Object.assign(c.state, p); render(p.pid); });
+        stats();
+      }
+      setRunning(!!ev.running);
+      return;
+    }
+    if (ev.type === "log"){ logLine(ev); return; }
+    if (ev.type === "problem"){
+      const c = card(ev.pid);
+      Object.assign(c.state, ev);
+      render(ev.pid); stats(); return;
+    }
+    if (ev.type === "done"){
+      setRunning(false);
+      if (ev.results && ev.results.length){
+        ev.results.forEach(r => {
+          const c = card(r.pid);
+          c.state.verdict = r.verdict;
+          c.state.status = r.verdict === "正确" ? "正确" : r.verdict;
+          render(r.pid);
+        });
+        stats();
+      }
+      if (!ev.error) toast(`完成：${ev.ac}/${ev.total} 通过`);
+      else toast("任务失败：" + ev.error);
+      return;
+    }
+  };
+  es.onerror = () => { es.close(); setTimeout(connect, 2500); };
+}
+
+/* ---------- 载入题目列表 ---------- */
+async function loadProblems(){
+  const contest = +$("#contest").value || 310;
+  const btn = $("#btnList");
+  btn.disabled = true; btn.textContent = "载入中…";
+  try{
+    const qs = new URLSearchParams({contest});
+    const r = await fetch("/api/problems?" + qs);
+    const js = await r.json();
+    if (!js.ok){ toast("载入失败：" + js.error); return; }
+    renderPicker(js.problems, js.contest);
+  }catch(e){ toast("载入失败：" + e.message); }
+  finally{ btn.disabled = false; btn.textContent = "载入题目列表"; }
+}
+
+let pickerData = [];
+function renderPicker(ps, contest){
+  pickerData = ps;
+  $("#pickerCard").style.display = "";
+  const acCount = ps.filter(p=>p.ac).length;
+  $("#pickerInfo").textContent = `— 考试 ${contest}，共 ${ps.length} 题，已通过 ${acCount} 题`;
+  const box = $("#picker");
+  box.innerHTML = "";
+  ps.forEach(p=>{
+    const d = document.createElement("div");
+    d.className = "chip"; d.dataset.pid = p.pid;
+    d.innerHTML = `<span class="pid">${p.pid}</span><span class="t">${esc(p.title)}</span>${p.ac?'<span class="tick">√</span>':''}`;
+    d.addEventListener("click", ()=>{
+      const cur = new Set(parsePids($("#pids").value));
+      if (cur.has(p.pid)) cur.delete(p.pid); else cur.add(p.pid);
+      $("#pids").value = [...cur].sort((a,b)=>a-b).join(",");
+      d.classList.toggle("sel");
+    });
+    box.appendChild(d);
+  });
+  // 已填的题号默认选中
+  const cur = new Set(parsePids($("#pids").value));
+  box.querySelectorAll(".chip").forEach(c => { if (cur.has(+c.dataset.pid)) c.classList.add("sel"); });
+}
+
+/* ---------- 执行 ---------- */
+async function run(){
+  const contest = +$("#contest").value;
+  const pids = parsePids($("#pids").value);
+  if (!contest){ toast("先填考试编号"); return; }
+  if (!pids.length){ toast("先填题目编号，例如 506,507,511"); return; }
+  if (needSetup()){ openSettings(true); toast("先完成配置：学号、密码、AI Key"); return; }
+
+  cards.clear(); $("#plist").innerHTML = ""; stats();
+  $("#log").innerHTML = `<span class="empty">启动中…</span>`;
+
+  // 先占位，用户能立刻看到要跑哪些题
+  pids.forEach(pid => {
+    const c = card(pid);
+    const known = pickerData.find(p=>p.pid===pid);
+    c.state = {pid, title: known ? known.title : `题目 ${pid}`, status:"排队中"};
+    render(pid);
+  });
+  stats();
+
+  const body = {
+    contest, pids,
+    retry: +$("#retry").value || 0,
+    delay: +$("#delay").value || 0,
+    skip_ac: $("#skipAc").checked,
+    dry: $("#dry").checked
+  };
+  try{
+    const r = await fetch("/api/run", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body)});
+    const js = await r.json();
+    if (!js.ok){ toast(js.error || "启动失败"); setRunning(false); return; }
+    setRunning(true);
+    toast($("#dry").checked ? "已启动（只生成不提交）" : "已启动，开始刷题");
+  }catch(e){ toast("启动失败：" + e.message); }
+}
+
+/* ---------- 配置 ---------- */
+let CFG = {user:"", has_pwd:false, has_key:false, key_hint:"", model:"", base_url:"",
+           has_gxx:true, gxx_name:"", data_dir:""};
+
+/* 缺任何一项都视为「还没配置好」，必须先弹窗 */
+function needSetup(){ return !CFG.user || !CFG.has_pwd || !CFG.has_key; }
+
+function renderCfg(){
+  const parts = [];
+  parts.push(CFG.user ? `<span style="color:var(--ok)">账号 ${esc(CFG.user)}</span>`
+                      : `<span style="color:var(--bad)">未设置账号</span>`);
+  parts.push(CFG.has_key ? `<span style="color:var(--ok)">模型 ${esc(CFG.model || "已配置")}</span>`
+                         : `<span style="color:var(--bad)">未设置 AI Key</span>`);
+  if (!CFG.has_gxx) parts.push(`<span style="color:var(--warn)">未找到 g++ 编译器</span>`);
+  $("#cfgHint").innerHTML = parts.join(" · ") +
+    ' · <a href="javascript:void(0)" id="lnkSet" style="color:var(--accent);font-weight:600">修改</a>';
+  const lnk = $("#lnkSet");
+  if (lnk) lnk.addEventListener("click", ()=> openSettings(false));
+}
+
+async function loadConfig(){
+  try{
+    const r = await fetch("/api/config");
+    CFG = await r.json();
+  }catch(e){}
+  renderCfg();
+  if (needSetup()) setTimeout(()=>{ if (!document.querySelector(".mask.show")) openSettings(true); }, 300);
+}
+
+/* 首次向导：标题/按钮/说明都变，且不允许关闭 */
+let wizard = false;
+
+function openSettings(first){
+  wizard = (first === undefined) ? needSetup() : !!first;
+  $("#cfgUser").value = CFG.user || "";
+  $("#cfgPwd").value = "";
+  $("#cfgKey").value = "";
+  $("#cfgPwd").placeholder = CFG.has_pwd ? "已保存，留空不修改" : "登录密码";
+  $("#cfgKey").placeholder = CFG.has_key ? "已保存，留空不修改" : "粘贴你自己的 Key";
+  $("#keyHint").textContent = CFG.has_key ? "当前：" + (CFG.key_hint || "已保存") : "还没有配置 Key";
+  $("#cfgModel").value = CFG.model || "glm-4.5-flash";
+  $("#cfgBase").value = CFG.base_url || "https://open.bigmodel.cn/api/paas/v4";
+  $("#dataDir").textContent = CFG.data_dir || "";
+
+  const cxx = $("#cxxState");
+  if (CFG.has_gxx){
+    cxx.innerHTML = `<span style="color:var(--ok)">编译器 ${esc(CFG.gxx_name || "g++")} 已就绪</span>`;
+  }else{
+    cxx.innerHTML = `<span style="color:var(--bad)">未找到 g++ 编译器</span>：` +
+      `请先安装 MinGW-w64 / w64devkit 并加入 PATH，否则无法编译生成的代码。`;
+  }
+
+  $("#setTitle").textContent = wizard ? "首次使用 · 请填写你自己的配置" : "设置";
+  $("#btnSaveCfg").textContent = wizard ? "保存并开始使用" : "保存";
+  $("#setupTip").style.display = wizard ? "" : "none";
+  $("#btnCloseSet").style.display = wizard ? "none" : "";
+  $("#mask").classList.add("show");
+  setTimeout(()=> (wizard ? $("#cfgUser") : $("#cfgUser")).focus(), 60);
+}
+
+function closeSettings(){
+  if (wizard && needSetup()){
+    toast("请先填完必填项再关闭");
+    return;
+  }
+  $("#mask").classList.remove("show");
+}
+
+$("#btnSetting").addEventListener("click", ()=> openSettings(false));
+$("#btnCloseSet").addEventListener("click", closeSettings);
+$("#mask").addEventListener("click", e => { if (e.target.id === "mask") closeSettings(); });
+$("#btnOpenDir").addEventListener("click", ()=> fetch("/api/open_dir", {method:"POST"}).catch(()=>{}));
+$("#btnSaveCfg").addEventListener("click", async ()=>{
+  const user = $("#cfgUser").value.trim();
+  const pwd = $("#cfgPwd").value.trim();
+  const key = $("#cfgKey").value.trim();
+  if (!user){ toast("请填写学号"); $("#cfgUser").focus(); return; }
+  if (!pwd && !CFG.has_pwd){ toast("请填写 OJ 登录密码"); $("#cfgPwd").focus(); return; }
+  if (!key && !CFG.has_key){ toast("请填写 AI API Key"); $("#cfgKey").focus(); return; }
+
+  const body = {
+    user,
+    pwd: pwd || null,
+    api_key: key || null,
+    model: $("#cfgModel").value,
+    base_url: $("#cfgBase").value
+  };
+  try{
+    const r = await fetch("/api/config", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body)});
+    const js = await r.json().catch(()=>({ok:true}));
+    if (js && js.ok === false){ toast("保存失败：" + (js.error || "")); return; }
+    await loadConfig();
+    if (needSetup()){
+      wizard = true;
+      $("#btnCloseSet").style.display = "none";
+      $("#setupTip").style.display = "";
+      toast("还有信息没填完");
+      return;
+    }
+    wizard = false;
+    $("#btnCloseSet").style.display = "";
+    $("#mask").classList.remove("show");
+    toast("已保存，可以开始执行了");
+  }catch(e){ toast("保存失败：" + e.message); }
+});
+
+/* ---------- 事件绑定 ---------- */
+$("#btnRun").addEventListener("click", run);
+$("#btnList").addEventListener("click", loadProblems);
+$("#btnStop").addEventListener("click", async ()=>{
+  try{ await fetch("/api/stop", {method:"POST"}); toast("正在停止…"); }
+  catch(e){ toast("停止失败：" + e.message); }
+});
+$("#btnSelTodo").addEventListener("click", ()=>{
+  $("#pids").value = pickerData.filter(p=>!p.ac).map(p=>p.pid).join(",");
+  document.querySelectorAll(".chip").forEach(c=>{
+    c.classList.toggle("sel", $("#pids").value.split(",").includes(c.dataset.pid));
+  });
+});
+$("#btnSelNone").addEventListener("click", ()=>{
+  $("#pids").value = "";
+  document.querySelectorAll(".chip").forEach(c=>c.classList.remove("sel"));
+});
+$("#pids").addEventListener("keydown", e => { if (e.key === "Enter" && !running) run(); });
+
+connect();
+loadConfig();
+
+/* 心跳：桌面壳据此判断窗口是否已关闭 */
+fetch("/api/ping").catch(()=>{});
+setInterval(()=>{ fetch("/api/ping").catch(()=>{}); }, 8000);
+
+fetch("/api/state").then(r=>r.json()).then(js=>{
+  setRunning(!!js.running);
+  if (js.problems && js.problems.length){
+    js.problems.forEach(p=>{ const c = card(p.pid); Object.assign(c.state,p); render(p.pid); });
+    stats();
+  }
+}).catch(()=>{});
+</script>
+</body>
+</html>

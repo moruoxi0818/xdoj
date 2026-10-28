@@ -1,0 +1,10 @@
+# 本机配置（含账号密码和 Key），不要提交
+.env
+
+# 运行环境与产物
+.venv/
+data/
+src/
+port.txt
+__pycache__/
+*.pyc
