@@ -4,9 +4,10 @@
 
 ## 下载现成程序
 
-不想装 Python 的话，直接用打包好的单文件版：
+不想装 Python 的话，直接用打包好的单文件版（就是桌面上的 `XDOJ自动刷题.exe`，上传时改名为 `XDOJ-Auto.exe`）：
 
-- [XDOJ自动刷题.exe](https://github.com/moruoxi0818/xdoj/releases/latest) —— 双击即用，首次运行会在同目录生成 `.env`，按页面提示填学号、密码、AI Key。
+- [XDOJ-Auto.exe 直接下载](https://github.com/moruoxi0818/xdoj/releases/download/v1.1.0/XDOJ-Auto.exe) —— 双击即用，首次运行会在同目录生成 `.env`，按页面提示填学号、密码、AI Key。
+- [全部版本（Release 页）](https://github.com/moruoxi0818/xdoj/releases)
 
 > 文件约 108 MB，超过了 GitHub 单文件 100 MB 的上限，所以放在 Release 里而不是直接提交进仓库。
 > 单文件版仍然需要本机装有 g++，见下面「编译环境（重要）」，否则本地编译校验会失败。
