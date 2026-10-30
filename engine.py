@@ -6,6 +6,7 @@
 
 import glob
 import os
+import re
 import shutil
 import subprocess
 import threading
@@ -119,16 +120,48 @@ def run_sample(exe, stdin_data, timeout=6):
         return None, "运行超时（可能死循环）"
 
 
+def _tokens(s):
+    """按空白切成数值/词，用来做「只看数值对不对」的宽松比对"""
+    return (s or "").split()
+
+
+def _squeeze(s):
+    """行内连续空格压成一个，行首尾空格去掉，保留换行结构"""
+    lines = [re.sub(r"[ \t]+", " ", ln).strip() for ln in norm(s).split("\n")]
+    return "\n".join(lines).strip()
+
+
 def check_samples(exe, samples):
+    """样例自检：先按原样比；只差空格就按「空格数量不重要」放过。
+
+    题面样例里的空格数量经常和文字要求对不上（要求一个空格、样例给两个），
+    所以样例只当数值参考，输出格式以题目描述为准，这里不逐字符苛求空格；
+    换行结构不同仍会放行，但会在提示里标出来。
+    """
     if not samples:
         return True, "题目未提供可解析样例，跳过自检"
+    space_only = 0
+    layout = 0
     for i, (cin, cout) in enumerate(samples, 1):
         got, err = run_sample(exe, cin + "\n")
         if got is None:
             return False, f"样例{i}：{err}"
-        if norm(got) != norm(cout):
-            return False, (f"样例{i} 输出不符\n输入：\n{cin}\n期望：\n{cout}\n实际：\n{got.strip()}")
-    return True, f"{len(samples)} 个样例全部通过"
+        if norm(got) == norm(cout):
+            continue
+        if _squeeze(got) == _squeeze(cout):
+            space_only += 1
+            continue
+        if _tokens(got) == _tokens(cout):
+            layout += 1
+            continue
+        return False, (f"样例{i} 输出不符\n输入：\n{cin}\n期望：\n{cout}\n实际：\n{got.strip()}")
+    notes = []
+    if space_only:
+        notes.append(f"其中 {space_only} 组只有空格数量不同")
+    if layout:
+        notes.append(f"其中 {layout} 组换行位置不同")
+    tail = ("（" + "，".join(notes) + "）") if notes else ""
+    return True, f"{len(samples)} 个样例数值全部通过{tail}"
 
 
 # ---------------- 引擎 ----------------
@@ -202,7 +235,9 @@ class Engine:
                  + ("，扫描版转图片" if imgs else ""))
 
         extra = (f"这是 XDOJ 第 {pid} 题「{title}」。"
-                 f"时间限制 {prob.get('tl')} 秒，内存限制 {prob.get('ml')} KB。")
+                 f"时间限制 {prob.get('tl')} 秒，内存限制 {prob.get('ml')} KB。"
+                 "注意：题面样例里的空格数量可能与题目要求的输出格式不一致，"
+                 "输出格式请严格按题目文字描述（输入说明/输出说明）来写，样例只用于核对数值。")
         feedback = ""
         code = ""
         last = None
@@ -300,7 +335,8 @@ class Engine:
                 return {"pid": pid, "title": title, "verdict": "正确", "attempts": attempt,
                         "sub": got["sub_id"], "cpp": cpp}
             feedback = (f"上一版提交判定为「{v}」，逻辑或输出格式有错。"
-                        f"请重新审题，注意边界情况与输出格式，给出更稳妥的实现。")
+                        f"请重新审题，注意边界情况；输出格式严格按题目的文字要求"
+                        f"（分隔符、空格数量、每行几个数），不要照抄样例里可能不规范的空白。")
 
         return {"pid": pid, "title": title,
                 "verdict": (last or {}).get("verdict") or "未通过",
